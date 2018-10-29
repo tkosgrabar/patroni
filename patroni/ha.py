@@ -322,7 +322,7 @@ class Ha(object):
                 elif not node_to_follow:
                     return 'no action'
         elif is_leader:
-            self.demote('immediate-nolock')
+            self.demote('fast-nolock')
             return demote_reason
 
         if self._handle_rewind():
@@ -453,7 +453,7 @@ class Ha(object):
     def enforce_master_role(self, message, promote_message):
         if not self.is_paused() and not self.watchdog.is_running and not self.watchdog.activate():
             if self.state_handler.is_leader():
-                self.demote('immediate')
+                self.demote('fast')
                 return 'Demoting self because watchdog could not be activated'
             else:
                 self.release_leader_key_voluntarily()
@@ -652,6 +652,8 @@ class Ha(object):
                 PostgreSQL as quickly as possible without regard for data durability. May only be called synchronously.
         """
         mode_control = {
+            'fast':             dict(stop='fast', checkpoint=False, release=True, offline=False, async_req=True),
+            'fast-nolock':      dict(stop='fast', checkpoint=False, release=False, offline=False, async_req=True),
             'offline':          dict(stop='fast', checkpoint=False, release=False, offline=True, async_req=False),
             'graceful':         dict(stop='fast', checkpoint=True, release=True, offline=False, async_req=False),
             'immediate':        dict(stop='immediate', checkpoint=False, release=True, offline=False, async_req=True),
@@ -839,7 +841,7 @@ class Ha(object):
                 if self.state_handler.is_leader():
                     if self.is_paused():
                         return 'continue to run as master after failing to update leader lock in DCS'
-                    self.demote('immediate-nolock')
+                    self.demote('fast-nolock')
                     return 'demoted self because failed to update leader lock in DCS'
                 else:
                     return 'not promoting because failed to update leader lock in DCS'
@@ -1086,7 +1088,7 @@ class Ha(object):
             if time_left <= 0:
                 if self.is_failover_possible(self.cluster.members):
                     logger.info("Demoting self because master startup is taking too long")
-                    self.demote('immediate')
+                    self.demote('fast')
                     return 'stopped PostgreSQL because of startup timeout'
                 else:
                     return 'master start has timed out, but continuing to wait because failover is not possible'
