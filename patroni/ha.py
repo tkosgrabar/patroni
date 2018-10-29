@@ -1088,7 +1088,7 @@ class Ha(object):
             if time_left <= 0:
                 if self.is_failover_possible(self.cluster.members):
                     logger.info("Demoting self because master startup is taking too long")
-                    self.demote('fast')
+                    self.demote('immediate')
                     return 'stopped PostgreSQL because of startup timeout'
                 else:
                     return 'master start has timed out, but continuing to wait because failover is not possible'
